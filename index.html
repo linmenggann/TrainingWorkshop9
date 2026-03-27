@@ -416,22 +416,22 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>👤 姓名</label>
-                        <input type="text" placeholder="請輸入您的姓名" required>
+                        <input type="text" id="name" placeholder="請輸入您的姓名" required>
                     </div>
                     <div class="form-group">
                         <label>🏥 機構名</label>
-                        <input type="text" placeholder="請輸入您的機構名稱" required>
+                        <input type="text" id="organization" placeholder="請輸入您的機構名稱" required>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label>💼 職稱</label>
-                        <input type="text" placeholder="請輸入您的職稱" required>
+                        <input type="text" id="title" placeholder="請輸入您的職稱" required>
                     </div>
                     <div class="form-group">
                         <label>🩺 負責的職類</label>
-                        <select required>
+                        <select id="category" required>
                             <option value="" disabled selected>請選擇職類</option>
                             <option value="藥事">💊 藥事</option>
                             <option value="醫事放射">☢️ 醫事放射</option>
@@ -480,11 +480,11 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>📧 Email</label>
-                        <input type="email" placeholder="your@email.com" required>
+                        <input type="email" id="email" placeholder="your@email.com" required>
                     </div>
                     <div class="form-group">
                         <label>📱 聯繫電話</label>
-                        <input type="tel" placeholder="請輸入您的聯繫電話" required>
+                        <input type="tel" id="phone" placeholder="請輸入您的聯繫電話" required>
                     </div>
                 </div>
 
@@ -539,18 +539,54 @@
 
         createParticles();
 
+        // ⚠️ 部署 Apps Script 後，將下方網址替換為你的 Web App URL
+        const APPS_SCRIPT_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL";
+
         // Form submission
         function handleSubmit(e) {
             e.preventDefault();
             const btn = e.target.querySelector('.submit-btn');
-            btn.textContent = '🎉 報名成功！感謝您的報名！';
-            btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-            btn.style.animation = 'pulse 0.5s ease';
-            setTimeout(() => {
-                btn.textContent = '🚀 立即報名';
-                btn.style.background = 'linear-gradient(135deg, #a855f7, #7c3aed, #6d28d9)';
-                btn.style.animation = '';
-            }, 3000);
+            btn.disabled = true;
+            btn.textContent = '⏳ 提交中...';
+
+            const data = {
+                name: document.getElementById('name').value,
+                organization: document.getElementById('organization').value,
+                title: document.getElementById('title').value,
+                category: document.getElementById('category').value,
+                isHost: document.querySelector('input[name="isHost"]:checked').value,
+                joinMethod: document.querySelector('input[name="joinMethod"]:checked').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value
+            };
+
+            fetch(APPS_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            })
+            .then(() => {
+                btn.textContent = '🎉 報名成功！感謝您的報名！';
+                btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                btn.style.animation = 'pulse 0.5s ease';
+                e.target.reset();
+                setTimeout(() => {
+                    btn.textContent = '🚀 立即報名';
+                    btn.style.background = 'linear-gradient(135deg, #a855f7, #7c3aed, #6d28d9)';
+                    btn.style.animation = '';
+                    btn.disabled = false;
+                }, 3000);
+            })
+            .catch(error => {
+                btn.textContent = '❌ 提交失敗，請重試';
+                btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                btn.disabled = false;
+                setTimeout(() => {
+                    btn.textContent = '🚀 立即報名';
+                    btn.style.background = 'linear-gradient(135deg, #a855f7, #7c3aed, #6d28d9)';
+                }, 3000);
+            });
         }
     </script>
 </body>
