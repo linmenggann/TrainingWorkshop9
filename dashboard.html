@@ -332,20 +332,40 @@
 
     const BAR_COLORS = ['purple','pink','blue','teal','orange','rose'];
 
+    // ===== JSONP 通用讀取函式（繞過 CORS）=====
+    function jsonpFetch(url, callbackName) {
+        return new Promise((resolve) => {
+            window[callbackName] = function(data) {
+                resolve(data);
+                delete window[callbackName];
+                var s = document.getElementById(callbackName);
+                if (s) s.remove();
+            };
+            var script = document.createElement('script');
+            script.id = callbackName;
+            script.src = url + '?callback=' + callbackName + '&t=' + Date.now();
+            script.onerror = function() {
+                resolve(null);
+                delete window[callbackName];
+                script.remove();
+            };
+            document.body.appendChild(script);
+        });
+    }
+
     // ===== Fetch Data =====
     function fetchData() {
         document.getElementById('tableContainer').innerHTML = '<div class="loading"><div class="spinner"></div><br>載入資料中...</div>';
 
-        fetch(APPS_SCRIPT_URL)
-            .then(res => res.json())
-            .then(json => {
-                if (json.status === 'success') {
-                    renderDashboard(json.data);
-                } else {
-                    showError('讀取資料失敗：' + json.message);
-                }
-            })
-            .catch(err => showError('連線失敗：' + err.message));
+        jsonpFetch(APPS_SCRIPT_URL, 'dashboardCallback').then(function(json) {
+            if (json && json.status === 'success') {
+                renderDashboard(json.data);
+            } else if (json) {
+                showError('讀取資料失敗：' + json.message);
+            } else {
+                showError('連線失敗，請確認 Apps Script 已部署最新版本');
+            }
+        });
     }
 
     function showError(msg) {

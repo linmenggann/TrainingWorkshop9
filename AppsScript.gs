@@ -1,4 +1,4 @@
-// ===== GET：讀取報名資料供儀表板使用 =====
+// ===== GET：讀取報名資料供儀表板使用（支援 JSONP 繞過 CORS）=====
 function doGet(e) {
   try {
     var sheet = SpreadsheetApp.openById("1nREPHRMx0Y6nyKKmgm3bDZKT2YnEhpMLIRKbyWTMvUs")
@@ -18,13 +18,31 @@ function doGet(e) {
       return obj;
     });
 
+    var jsonStr = JSON.stringify({ status: "success", data: result, total: result.length });
+    var callback = e.parameter.callback;
+
+    if (callback) {
+      return ContentService
+        .createTextOutput(callback + "(" + jsonStr + ")")
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+
     return ContentService
-      .createTextOutput(JSON.stringify({ status: "success", data: result, total: result.length }))
+      .createTextOutput(jsonStr)
       .setMimeType(ContentService.MimeType.JSON);
 
   } catch (error) {
+    var errStr = JSON.stringify({ status: "error", message: error.toString() });
+    var cb = e.parameter.callback;
+
+    if (cb) {
+      return ContentService
+        .createTextOutput(cb + "(" + errStr + ")")
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+
     return ContentService
-      .createTextOutput(JSON.stringify({ status: "error", message: error.toString() }))
+      .createTextOutput(errStr)
       .setMimeType(ContentService.MimeType.JSON);
   }
 }

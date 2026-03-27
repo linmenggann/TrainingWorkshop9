@@ -548,12 +548,31 @@
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxcUynRCLrvQSsKUCVETNkMAp9XCI6TC8DAtePHr7Hf5XWvUrX8kipCTFLCKaz_QTCO3Q/exec";
         const MAX_SEATS = 4;
 
+        // JSONP 通用讀取函式（繞過 CORS）
+        function jsonpFetch(url, callbackName) {
+            return new Promise((resolve) => {
+                window[callbackName] = function(data) {
+                    resolve(data);
+                    delete window[callbackName];
+                    var s = document.getElementById(callbackName);
+                    if (s) s.remove();
+                };
+                var script = document.createElement('script');
+                script.id = callbackName;
+                script.src = url + '?callback=' + callbackName + '&t=' + Date.now();
+                script.onerror = function() {
+                    resolve(null);
+                    delete window[callbackName];
+                    script.remove();
+                };
+                document.body.appendChild(script);
+            });
+        }
+
         // 頁面載入時檢查名額
         function checkCapacity() {
-            fetch(APPS_SCRIPT_URL)
-                .then(res => res.json())
-                .then(json => {
-                    if (json.status === 'success') {
+            jsonpFetch(APPS_SCRIPT_URL, 'capacityCallback').then(function(json) {
+                    if (json && json.status === 'success') {
                         const registered = json.total || 0;
                         const remaining = Math.max(0, MAX_SEATS - registered);
                         const seatInfo = document.getElementById('seatInfo');
@@ -577,8 +596,7 @@
                             seatInfo.style.color = remaining <= 1 ? '#fbbf24' : 'rgba(255,255,255,0.6)';
                         }
                     }
-                })
-                .catch(() => {});
+                });
         }
 
         checkCapacity();
