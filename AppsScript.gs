@@ -1,3 +1,35 @@
+// ===== GET：讀取報名資料供儀表板使用 =====
+function doGet(e) {
+  try {
+    var sheet = SpreadsheetApp.openById("1nREPHRMx0Y6nyKKmgm3bDZKT2YnEhpMLIRKbyWTMvUs")
+                              .getSheetByName("工作坊報名資料");
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var rows = data.slice(1).filter(function(row) {
+      return row.some(function(cell) { return cell !== ""; });
+    });
+
+    var result = rows.map(function(row) {
+      var obj = {};
+      headers.forEach(function(header, i) {
+        obj[header] = row[i];
+      });
+      return obj;
+    });
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ status: "success", data: result, total: result.length }))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ status: "error", message: error.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// ===== POST：接收報名資料寫入試算表 =====
 function doPost(e) {
   try {
     var sheet = SpreadsheetApp.openById("1nREPHRMx0Y6nyKKmgm3bDZKT2YnEhpMLIRKbyWTMvUs")
