@@ -488,7 +488,13 @@
                     </div>
                 </div>
 
-                <button type="submit" class="submit-btn">🚀 立即報名</button>
+                <div id="fullMessage" style="display:none; text-align:center; padding:20px; background:rgba(239,68,68,0.2); border:1px solid rgba(239,68,68,0.4); border-radius:16px; margin-bottom:16px;">
+                    <span style="font-size:2rem;">🚫</span>
+                    <p style="font-size:1.2rem; font-weight:700; margin-top:8px;">報名已額滿</p>
+                    <p style="color:rgba(255,255,255,0.7); margin-top:4px;">本活動限額 4 名，目前已額滿，感謝您的關注！</p>
+                </div>
+                <button type="submit" class="submit-btn" id="submitBtn">🚀 立即報名</button>
+                <p id="seatInfo" style="text-align:center; margin-top:12px; color:rgba(255,255,255,0.6); font-size:0.9rem;"></p>
             </form>
         </section>
 
@@ -539,8 +545,61 @@
 
         createParticles();
 
-        // ⚠️ 部署 Apps Script 後，將下方網址替換為你的 Web App URL
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxcUynRCLrvQSsKUCVETNkMAp9XCI6TC8DAtePHr7Hf5XWvUrX8kipCTFLCKaz_QTCO3Q/exec";
+        const MAX_SEATS = 4;
+
+        // JSONP 通用讀取函式（繞過 CORS）
+        function jsonpFetch(url, callbackName) {
+            return new Promise((resolve) => {
+                window[callbackName] = function(data) {
+                    resolve(data);
+                    delete window[callbackName];
+                    var s = document.getElementById(callbackName);
+                    if (s) s.remove();
+                };
+                var script = document.createElement('script');
+                script.id = callbackName;
+                script.src = url + '?callback=' + callbackName + '&t=' + Date.now();
+                script.onerror = function() {
+                    resolve(null);
+                    delete window[callbackName];
+                    script.remove();
+                };
+                document.body.appendChild(script);
+            });
+        }
+
+        // 頁面載入時檢查名額
+        function checkCapacity() {
+            jsonpFetch(APPS_SCRIPT_URL, 'capacityCallback').then(function(json) {
+                    if (json && json.status === 'success') {
+                        const registered = json.total || 0;
+                        const remaining = Math.max(0, MAX_SEATS - registered);
+                        const seatInfo = document.getElementById('seatInfo');
+                        const submitBtn = document.getElementById('submitBtn');
+                        const fullMsg = document.getElementById('fullMessage');
+                        const form = document.getElementById('registrationForm');
+
+                        if (remaining <= 0) {
+                            // 額滿：停用表單
+                            fullMsg.style.display = 'block';
+                            submitBtn.disabled = true;
+                            submitBtn.textContent = '🚫 已額滿';
+                            submitBtn.style.background = 'linear-gradient(135deg, #6b7280, #4b5563)';
+                            submitBtn.style.cursor = 'not-allowed';
+                            // 停用所有輸入欄位
+                            form.querySelectorAll('input, select').forEach(el => el.disabled = true);
+                            seatInfo.textContent = '⚠️ 本活動限額 ' + MAX_SEATS + ' 名，已全數額滿';
+                            seatInfo.style.color = '#fca5a5';
+                        } else {
+                            seatInfo.textContent = '📢 剩餘名額：' + remaining + ' / ' + MAX_SEATS;
+                            seatInfo.style.color = remaining <= 1 ? '#fbbf24' : 'rgba(255,255,255,0.6)';
+                        }
+                    }
+                });
+        }
+
+        checkCapacity();
 
         // Form submission
         function handleSubmit(e) {
@@ -571,7 +630,9 @@
                 btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
                 btn.style.animation = 'pulse 0.5s ease';
                 e.target.reset();
+                // 重新檢查名額
                 setTimeout(() => {
+                    checkCapacity();
                     btn.textContent = '🚀 立即報名';
                     btn.style.background = 'linear-gradient(135deg, #a855f7, #7c3aed, #6d28d9)';
                     btn.style.animation = '';
